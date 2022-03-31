@@ -1,0 +1,100 @@
+from re import T
+from flask import Flask, jsonify, request
+from Models import db, Dispositivo, tiposdispositivo, StatusDispositivo, lecturas, Mantenimientos
+from logging import exception
+
+app = Flask(__name__)
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database\\dispositivo.db"
+app.config["SQLALCHEMY_TRAK_MODIFICATIONS"] = False
+db.init_app(app)
+
+# Routes
+@app.route("/")
+def home():
+  return "<h1>Welcome</h1>"
+
+# GET
+@app.route("/api/dispositivos", methods=["GET"])
+def getDispositivos():
+  try:
+    dispositivos = Dispositivo.query.all()
+    toReturn = [dispositivo.serialize() for dispositivo in dispositivos]
+    return jsonify(toReturn), 200 
+  except Exception as e:
+    exception("[SERVER]: Error")
+    return jsonify({"message": "Ha ocurrido un error"}), 500
+
+@app.route("/api/dispositivo/<id>", methods=["GET"])
+def getDispositivoById(id):
+  try:
+    dispositivo = Dispositivo.query.get(id)
+    if not dispositivo:
+      return jsonify({"message": "No existe el dispositivo"}), 404
+    else:
+      return jsonify(dispositivo.serialize()), 200
+  except Exception as e:
+    exception("[SERVER]: Error")
+    return jsonify({"message": "Ha ocurrido un error"}), 500
+
+@app.route("/api/find-dispositivo", methods=["GET"])
+def findDispositivo():
+  try:
+    fields = {}
+    for arg in request.args:
+      if arg == "id" or arg == "nombre_de_equipo" or arg == "tipodispositivoId" or arg == "fecha_de_alta" or arg == "fecha_de_actualización" or arg == "potencia_actual" or arg == "statusDispositivoId":
+        fields[arg] = request.args[arg]
+    dispositivo = Dispositivo.query.filter_by(**fields).first()
+    if not dispositivo:
+      return jsonify({"message": "No existe el dispositivo"}), 404
+    else:
+      return jsonify(dispositivo.serialize()), 200
+  except Exception as e:
+    exception("[SERVER]: Error")
+    return jsonify({"message": "Ha ocurrido un error"}), 500
+
+@app.route("/api/find-dispositivos", methods=["GET"])
+def findDispositivos():
+  try:
+    fields = {}
+    for arg in request.args:
+      if arg == "id" or arg == "nombre_de_equipo" or arg == "tipodispositivoId" or arg == "fecha_de_alta" or arg == "fecha_de_actualización" or arg == "potencia_actual" or arg == "statusDispositivoId":
+        fields[arg] = request.args[arg]
+    dispositivos = Dispositivo.query.filter_by(**fields)
+    if not dispositivos:
+      return jsonify({"message": "No existen dispositivo con ese filtro"}), 404
+    else:
+      toReturn = [dispositivo.serialize() for dispositivo in dispositivos]
+      return jsonify(toReturn), 200 
+  except Exception as e:
+    exception("[SERVER]: Error")
+    return jsonify({"message": "Ha ocurrido un error"}), 500
+
+# POST
+@app.route("/api/dispositivo", methods=["POST"])
+def createDispositivo():
+  reqJSON = request.json
+  print(reqJSON)
+
+  newDispositivo = Dispositivo()
+
+  newDispositivo[nombre_de_equipo] = reqJSON[nombre_de_equipo]
+  newDispositivo[tipodispositivoId] = reqJSON[tipodispositivoId]
+  newDispositivo[fecha_de_alta] = reqJSON[fecha_de_alta]
+  newDispositivo[fecha_de_actualización] = reqJSON[fecha_de_actualización]
+  newDispositivo[potencia_actual] = reqJSON[potencia_actual]
+  newDispositivo[statusDispositivoId] = reqJSON[statusDispositivoId]
+
+  return 'received'
+
+# CORS
+@app.after_request
+def after_request(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS, PUT, DELETE"
+    response.headers["Access-Control-Allow-Headers"] = "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization"
+    return response
+
+# Run
+if __name__ == "__main__":
+  app.run(debug = True, port=4666)
